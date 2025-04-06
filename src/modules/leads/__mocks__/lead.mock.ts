@@ -1,4 +1,4 @@
-import { Lead } from "@prisma/client";
+import { Lead } from "../models/lead.model";
 import { Services } from "../models/services.enum";
 
 export const mockLeads: Lead[] = [

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { LeadsService } from './leads.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Services } from './models/services.enum';
-import { Lead } from '@prisma/client';
+import { Lead } from './models/lead.model';
 import { mockLead, mockLeads } from './__mocks__/lead.mock';
 import { mockRegisterInput } from './__mocks__/register.mock';
 import { ConflictException, NotFoundException } from '@nestjs/common';
