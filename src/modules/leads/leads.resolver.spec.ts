@@ -1,12 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LeadsResolver } from './leads.resolver';
 import { LeadsService } from './leads.service';
-import { mockLeads } from './__mocks__/lead.mock';
+import { mockLead, mockLeads } from './__mocks__/lead.mock';
 import { Services } from './models/services.enum';
 import { RegisterResponse } from './dto/register.response';
 import { mockRegisterInput } from './__mocks__/register.mock';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { ErrorMessages } from '../../common/constants/error-messages';
+import { Lead } from './models/lead.model';
 
 describe('LeadsResolver', () => {
   let resolver: LeadsResolver;
@@ -14,6 +15,7 @@ describe('LeadsResolver', () => {
 
   // Mock data for tests
   const leads = mockLeads;
+  const lead = mockLead;
   const registerInput = mockRegisterInput;
 
   beforeEach(async () => {
@@ -26,6 +28,7 @@ describe('LeadsResolver', () => {
           useValue: {
             register: jest.fn(),
             getLeads: jest.fn(),
+            getLead: jest.fn()
           },
         },
       ],
@@ -76,7 +79,7 @@ describe('LeadsResolver', () => {
       expect(service.register).toHaveBeenCalledTimes(1);
       expect(service.register).toHaveBeenCalledWith(mockRegisterInput);
     });
-    
+
     it('should propagate exceptions from the service', async () => {
       // Arrange
       const errorMessage = 'Unexpected error during registration';
@@ -132,6 +135,55 @@ describe('LeadsResolver', () => {
       // Act & Assert
       await expect(resolver.getLeads()).rejects.toThrow(errorMessage);
       expect(service.getLeads).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getLead', () => {
+    it('should retrieve a lead by ID when it exists', async () => {
+      // Arrange
+      const leadId = 2;
+      const mappedLead = {
+        ...lead,
+        services: lead.services as Services[]
+      } as Lead
+
+      jest.spyOn(service, 'getLead').mockResolvedValue(mappedLead);
+
+      // Act
+      const result = await resolver.getLead(leadId);
+
+      // Assert
+      expect(service.getLead).toHaveBeenCalledTimes(1);
+      expect(service.getLead).toHaveBeenCalledWith(leadId);
+      expect(result).toEqual(mappedLead);
+      expect(result.id).toBe(leadId);
+      expect(result.email).toBe(mappedLead.email);
+      expect(result.services).toEqual(mappedLead.services);
+    });
+
+    it('should propagate NotFoundException when lead does not exist', async () => {
+      // Arrange
+      const leadId = 999;
+      const notFoundError = new NotFoundException(`Lead with id ${leadId} not found`);
+      jest.spyOn(service, 'getLead').mockRejectedValue(notFoundError);
+
+      // Act & Assert
+      await expect(resolver.getLead(leadId)).rejects.toThrow(NotFoundException);
+      await expect(resolver.getLead(leadId)).rejects.toThrow(`Lead with id ${leadId} not found`);
+      expect(service.getLead).toHaveBeenCalledTimes(2);
+      expect(service.getLead).toHaveBeenCalledWith(leadId);
+    });
+
+    it('should propagate unexpected errors from the service', async () => {
+      // Arrange
+      const leadId = 2;
+      const unexpectedError = new Error('Unexpected database error');
+      jest.spyOn(service, 'getLead').mockRejectedValue(unexpectedError);
+
+      // Act & Assert
+      await expect(resolver.getLead(leadId)).rejects.toThrow('Unexpected database error');
+      expect(service.getLead).toHaveBeenCalledTimes(1);
+      expect(service.getLead).toHaveBeenCalledWith(leadId);
     });
   });
 });

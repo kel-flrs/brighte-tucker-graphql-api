@@ -27,3 +27,12 @@ export const mockLeads: Lead[] = [
     services: [Services.DELIVERY, Services.PICKUP, Services.PAYMENT]
   }
 ];
+
+export const mockLead: Lead = {
+  id: 2,
+  name: 'Sophie Taylor',
+  email: 'sophie.taylor@outlook.com',
+  mobile: '0423 789 456',
+  postcode: '3143',
+  services: [Services.PICKUP, Services.PAYMENT]
+}

@@ -3,9 +3,9 @@ import { LeadsService } from './leads.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Services } from './models/services.enum';
 import { Lead } from '@prisma/client';
-import { mockLeads } from './__mocks__/lead.mock';
+import { mockLead, mockLeads } from './__mocks__/lead.mock';
 import { mockRegisterInput } from './__mocks__/register.mock';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { ErrorMessages } from '../../common/constants/error-messages';
 
 describe('LeadsService', () => {
@@ -14,6 +14,7 @@ describe('LeadsService', () => {
 
   // Mock data for tests
   const leads = mockLeads;
+  const lead = mockLead;
   const registerInput = mockRegisterInput;
 
   beforeEach(async () => {
@@ -181,6 +182,75 @@ describe('LeadsService', () => {
       // Act & Assert
       await expect(service.getLeads()).rejects.toThrow('Database connection failed');
       expect(prismaService.lead.findMany).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getLead', () => {
+    it('should successfully retrieve a lead when it exists', async () => {
+      // Arrange
+      jest.spyOn(prismaService.lead, 'findUnique').mockResolvedValue(lead);
+      const leadId = 2;
+
+      // Act
+      const result = await service.getLead(leadId);
+
+      // Assert
+      expect(prismaService.lead.findUnique).toHaveBeenCalledWith({
+        where: { id: leadId }
+      });
+      expect(result).toEqual({
+        ...lead,
+        services: lead.services as Services[]
+      });
+      expect(result.services).toBeInstanceOf(Array);
+      expect(result.services).toContain(Services.PICKUP);
+      expect(result.services).toContain(Services.PAYMENT);
+    });
+
+    it('should throw NotFoundException when the lead does not exist', async () => {
+      // Arrange
+      jest.spyOn(prismaService.lead, 'findUnique').mockResolvedValue(null);
+      const leadId = 999;
+      const expectedErrorMessage = `Lead with id ${leadId} not found`;
+
+      // Act & Assert
+      await expect(service.getLead(leadId)).rejects.toThrow(NotFoundException);
+      await expect(service.getLead(leadId)).rejects.toThrow(expectedErrorMessage);
+      expect(prismaService.lead.findUnique).toHaveBeenCalledWith({
+        where: { id: leadId }
+      });
+    });
+    
+    it('should handle leads with null or empty services array', async () => {
+      // Arrange
+      const leadWithNullServices = {
+        ...lead,
+        services: null
+      };
+      jest.spyOn(prismaService.lead, 'findUnique').mockResolvedValue(leadWithNullServices);
+      const leadId = 2;
+
+      // Act
+      const result = await service.getLead(leadId);
+
+      // Assert
+      expect(result.services).toBeNull();
+      expect(prismaService.lead.findUnique).toHaveBeenCalledWith({
+        where: { id: leadId }
+      });
+    });
+
+    it('should propagate database errors', async () => {
+      // Arrange
+      const databaseError = new Error('Database connection error');
+      jest.spyOn(prismaService.lead, 'findUnique').mockRejectedValue(databaseError);
+      const leadId = 2;
+
+      // Act & Assert
+      await expect(service.getLead(leadId)).rejects.toThrow('Database connection error');
+      expect(prismaService.lead.findUnique).toHaveBeenCalledWith({
+        where: { id: leadId }
+      });
     });
   });
 });
