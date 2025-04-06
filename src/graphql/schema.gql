@@ -18,6 +18,24 @@ enum Services {
   PAYMENT
 }
 
+type RegisterResponse {
+  success: Boolean!
+  id: Int!
+  email: String!
+}
+
 type Query {
   leads: [Lead!]!
+}
+
+type Mutation {
+  register(input: RegisterInput!): RegisterResponse!
+}
+
+input RegisterInput {
+  name: String!
+  email: String!
+  mobile: String!
+  postcode: String!
+  services: [Services!]!
 }
