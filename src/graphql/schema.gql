@@ -1,0 +1,23 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Lead {
+  id: Int!
+  name: String!
+  email: String!
+  mobile: String!
+  postcode: String!
+  services: [Services!]!
+}
+
+"""Services that Brighte Eats offers"""
+enum Services {
+  DELIVERY
+  PICKUP
+  PAYMENT
+}
+
+type Query {
+  leads: [Lead!]!
+}
