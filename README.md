@@ -45,14 +45,18 @@ This little project is a GraphQL API designed to capture customer interest for a
    ```bash
    cp .env.example .env
    ```
-3. **Start your Docker engine through Docker Desktop (recommended)**
+3. **Install dependencies**
+   ```bash
+   npm install --force
+   ```
+4. **Start your Docker engine through Docker Desktop (recommended)**
 
-4. **Make the run script executable**
+5. **Make the run script executable**
    ```bash
    chmod +x run.sh
    ```
 
-5. **Start the Docker environment**
+6. **Start the Docker environment**
    ```bash
    ./run.sh
    ```
