@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { Lead } from "./models/lead.model";
 import { Services } from "./models/services.enum";
@@ -45,5 +45,20 @@ export class LeadsService {
       ...lead,
       services: lead.services as Services[],
     }));
+  }
+
+  async getLead(id: number): Promise<Lead> {
+    const lead = await this.prisma.lead.findUnique({
+      where: { id }
+    })
+
+    if (!lead) {
+      throw new NotFoundException(`Lead with id ${id} not found`)
+    }
+    
+    return {
+      ...lead,
+      services: lead.services as Services[]
+    }
   }
 }

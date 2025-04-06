@@ -26,6 +26,7 @@ type RegisterResponse {
 
 type Query {
   leads: [Lead!]!
+  lead(id: Int!): Lead!
 }
 
 type Mutation {

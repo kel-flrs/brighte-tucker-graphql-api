@@ -1,4 +1,4 @@
-import { Args, Mutation, Query, Resolver } from "@nestjs/graphql";
+import { Args, Int, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { Lead } from "./models/lead.model";
 import { LeadsService } from "./leads.service";
 import { RegisterResponse } from "./dto/register.response";
@@ -16,5 +16,10 @@ export class LeadsResolver {
   @Query(() => [Lead], { name: 'leads' })
   async getLeads(): Promise<Lead[]> {
     return await this.leadsService.getLeads();
+  }
+
+  @Query(() => Lead, { name: 'lead' })
+  async getLead(@Args('id', { type: () => Int }) id: number): Promise<Lead> {
+    return await this.leadsService.getLead(id);
   }
 }
