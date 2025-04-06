@@ -3,38 +3,18 @@ import { LeadsService } from './leads.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Services } from './models/services.enum';
 import { Lead } from '@prisma/client';
+import { mockLeads } from './__mocks__/lead.mock';
+import { mockRegisterInput } from './__mocks__/register.mock';
+import { ConflictException } from '@nestjs/common';
+import { ErrorMessages } from '../../common/constants/error-messages';
 
 describe('LeadsService', () => {
   let service: LeadsService;
   let prismaService: PrismaService;
 
   // Mock data for tests
-  const mockLeads: Lead[] = [
-    { 
-      id: 1,
-      name: 'James Wilson',
-      email: 'james.wilson@gmail.com',
-      mobile: '0412 345 678',
-      postcode: '2060',
-      services: [Services.DELIVERY, Services.PAYMENT]
-    } as Lead,
-    {
-      id: 2,
-      name: 'Sophie Taylor',
-      email: 'sophie.taylor@outlook.com',
-      mobile: '0423 789 456',
-      postcode: '3143',
-      services: [Services.PICKUP, Services.PAYMENT]
-    } as Lead,
-    {
-      id: 3,
-      name: 'Liam Nguyen',
-      email: 'liam.nguyen@hotmail.com',
-      mobile: '0437 654 321',
-      postcode: '4000',
-      services: [Services.DELIVERY, Services.PICKUP, Services.PAYMENT]
-    } as Lead
-  ];
+  const leads = mockLeads;
+  const registerInput = mockRegisterInput;
 
   beforeEach(async () => {
     // Create testing module with mocked dependencies
@@ -45,6 +25,8 @@ describe('LeadsService', () => {
           provide: PrismaService,
           useValue: {
             lead: {
+              findUnique: jest.fn(),
+              create: jest.fn(),
               findMany: jest.fn(),
             },
           },
@@ -64,10 +46,84 @@ describe('LeadsService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('register', () => {
+    it('should return a successful registration response', async () => {
+      // Arrange
+      const mockCreatedLead = {
+        id: 4,
+        name: 'John Doe',
+        email: 'johndoe@gmail.com',
+        mobile: '9876',
+        postcode: '7746',
+        services: [Services.DELIVERY, Services.PAYMENT]
+      }
+
+      jest.spyOn(prismaService.lead, 'findUnique').mockResolvedValue(null)
+      jest.spyOn(prismaService.lead, 'create').mockResolvedValue(mockCreatedLead);
+
+      // Act
+      const result = await service.register(registerInput);
+
+      // Assert
+      expect(prismaService.lead.findUnique).toHaveBeenCalledTimes(1);
+      expect(prismaService.lead.create).toHaveBeenCalledTimes(1);
+      expect(prismaService.lead.create).toHaveBeenCalledWith({
+        data: {
+          name: registerInput.name,
+          email: registerInput.email,
+          mobile: registerInput.mobile,
+          postcode: registerInput.postcode,
+          services: registerInput.services
+        }
+      });
+      expect(result.success).toEqual(true)
+      expect(result.id).toEqual(mockCreatedLead.id);
+      expect(result.email).toEqual(mockCreatedLead.email)
+    });
+
+    it('should throw ConflictException if email already exists', async () => {
+       // Arrange
+       const mockFoundLead = {
+        id: 4,
+        name: 'John Doe',
+        email: 'johndoe@gmail.com',
+        mobile: '9876',
+        postcode: '7746',
+        services: [Services.DELIVERY, Services.PAYMENT]
+      }
+
+      jest.spyOn(prismaService.lead, 'findUnique').mockResolvedValue(mockFoundLead);
+
+      // Act & Assert
+      await expect(service.register(registerInput)).rejects.toThrow(ConflictException);
+      await expect(service.register(registerInput)).rejects.toThrow(ErrorMessages.EMAIL_ALREADY_EXISTS);
+
+      expect(prismaService.lead.findUnique).toHaveBeenCalledWith({
+        where: { email: registerInput.email }
+      });
+      expect(prismaService.lead.create).not.toHaveBeenCalled();
+    });
+
+    it('should propagate database errors during lead creation', async () => {
+      // Arrange
+      const databaseError = new Error('Database connection error');
+      jest.spyOn(prismaService.lead, 'findUnique').mockResolvedValue(null);
+      jest.spyOn(prismaService.lead, 'create').mockRejectedValue(databaseError);
+
+      // Act & Assert
+      await expect(service.register(registerInput)).rejects.toThrow('Database connection error');
+      
+      expect(prismaService.lead.findUnique).toHaveBeenCalledWith({
+        where: { email: registerInput.email }
+      });
+      expect(prismaService.lead.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('getLeads', () => {
     it('should return an array of leads with services as enums', async () => {
       // Arrange
-      jest.spyOn(prismaService.lead, 'findMany').mockResolvedValue(mockLeads);
+      jest.spyOn(prismaService.lead, 'findMany').mockResolvedValue(leads);
 
       // Act
       const result = await service.getLeads();

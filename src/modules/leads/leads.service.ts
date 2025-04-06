@@ -3,7 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { Lead } from "./models/lead.model";
 import { Services } from "./models/services.enum";
 import { RegisterInput } from "./dto/register.input";
-import { ErrorMessages } from "src/common/constants/error-messages";
+import { ErrorMessages } from "../../common/constants/error-messages";
 import { RegisterResponse } from "./dto/register.response";
 
 @Injectable()

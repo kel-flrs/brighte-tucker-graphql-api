@@ -1,40 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LeadsResolver } from './leads.resolver';
 import { LeadsService } from './leads.service';
-import { Lead } from './models/lead.model';
+import { mockLeads } from './__mocks__/lead.mock';
 import { Services } from './models/services.enum';
+import { RegisterResponse } from './dto/register.response';
+import { mockRegisterInput } from './__mocks__/register.mock';
+import { ConflictException } from '@nestjs/common';
+import { ErrorMessages } from '../../common/constants/error-messages';
 
 describe('LeadsResolver', () => {
   let resolver: LeadsResolver;
   let service: LeadsService;
 
   // Mock data for tests
-  const mockLeads: Lead[] = [
-    { 
-      id: 1,
-      name: 'James Wilson',
-      email: 'james.wilson@gmail.com',
-      mobile: '0412 345 678',
-      postcode: '2060',
-      services: [Services.DELIVERY, Services.PAYMENT]
-    } as Lead,
-    {
-      id: 2,
-      name: 'Sophie Taylor',
-      email: 'sophie.taylor@outlook.com',
-      mobile: '0423 789 456',
-      postcode: '3143',
-      services: [Services.PICKUP, Services.PAYMENT]
-    } as Lead,
-    {
-      id: 3,
-      name: 'Liam Nguyen',
-      email: 'liam.nguyen@hotmail.com',
-      mobile: '0437 654 321',
-      postcode: '4000',
-      services: [Services.DELIVERY, Services.PICKUP, Services.PAYMENT]
-    } as Lead
-  ];
+  const leads = mockLeads;
+  const registerInput = mockRegisterInput;
 
   beforeEach(async () => {
     // Create testing module with mocked dependencies
@@ -44,6 +24,7 @@ describe('LeadsResolver', () => {
         {
           provide: LeadsService,
           useValue: {
+            register: jest.fn(),
             getLeads: jest.fn(),
           },
         },
@@ -62,17 +43,68 @@ describe('LeadsResolver', () => {
     expect(resolver).toBeDefined();
   });
 
+  describe('register', () => {
+    it('should return a successful registration response', async () => {
+      // Arrange
+      const mockSuccessResponse = {
+        success: true,
+        id: 4,
+        email: 'johndoe@gmail.com'
+      } as RegisterResponse
+
+      jest.spyOn(service, 'register').mockResolvedValue(mockSuccessResponse);
+
+      // Act
+      const result = await resolver.register(registerInput);
+
+      // Assert
+      expect(service.register).toHaveBeenCalledTimes(1);
+      expect(service.register).toHaveBeenCalledWith(registerInput);
+      expect(result).toEqual(mockSuccessResponse);
+      expect(result.success).toBe(true);
+      expect(result.id).toBe(mockSuccessResponse.id);
+      expect(result.email).toBe(mockSuccessResponse.email);
+    });
+
+    it('should handle registration failure from service', async () => {
+      jest.spyOn(service, 'register').mockRejectedValue(
+        new ConflictException(ErrorMessages.EMAIL_ALREADY_EXISTS)
+      );
+    
+      // Act & Assert
+      await expect(resolver.register(mockRegisterInput)).rejects.toThrow(ConflictException);
+      expect(service.register).toHaveBeenCalledTimes(1);
+      expect(service.register).toHaveBeenCalledWith(mockRegisterInput);
+    });
+    
+    it('should propagate exceptions from the service', async () => {
+      // Arrange
+      const errorMessage = 'Unexpected error during registration';
+      jest.spyOn(service, 'register').mockRejectedValue(new Error(errorMessage));
+
+      // Act & Assert
+      await expect(resolver.register(mockRegisterInput)).rejects.toThrow(errorMessage);
+      expect(service.register).toHaveBeenCalledTimes(1);
+      expect(service.register).toHaveBeenCalledWith(mockRegisterInput);
+    });
+  });
+
   describe('getLeads', () => {
     it('should return an array of leads', async () => {
       // Arrange
-      jest.spyOn(service, 'getLeads').mockResolvedValue(mockLeads);
+      const mappedLeads = leads.map(lead => ({
+        ...lead,
+        services: lead.services as Services[]
+      }));
+
+      jest.spyOn(service, 'getLeads').mockResolvedValue(mappedLeads);
 
       // Act
       const result = await resolver.getLeads();
 
       // Assert
       expect(service.getLeads).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(mockLeads);
+      expect(result).toEqual(leads);
       expect(result.length).toBe(3);
       expect(result[0].id).toBe(1);
       expect(result[1].name).toBe('Sophie Taylor');
