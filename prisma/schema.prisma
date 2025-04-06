@@ -1,0 +1,19 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id       Int      @id @default(autoincrement())
+  name     String
+  email    String   @unique
+  mobile   String
+  postcode String
+  services String[] //Brighte Eats services (delivery, pick-up, payment)
+
+  @@map("leads") //maps to leads table
+}
