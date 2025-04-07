@@ -2,7 +2,7 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
 </p>
 
-# Brighte Eats
+# Brighte Eats API
 
 This little project is a GraphQL API designed to capture customer interest for a new food service platform. The API collects and organizes expressions of interest, specifically tracking customer preferences for three key offerings: delivery services, in-store pickup options, and integrated payment processing.
 
